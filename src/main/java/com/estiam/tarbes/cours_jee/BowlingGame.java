@@ -29,30 +29,23 @@ public class BowlingGame {
         Frame currentFrame = currentPlayer.getCurrentFrame();
         
         // Vérifier si le lancer est valide
-        if (!currentFrame.isLastFrame() && currentFrame.getRolls().size() == 1) {
-            int firstRoll = currentFrame.getRolls().get(0);
-            if (firstRoll + pins > 10) {
-                throw new IllegalArgumentException("Le total des quilles ne peut pas dépasser 10 dans une frame");
+        if (!currentFrame.isLastFrame()) {
+            if (currentFrame.getRolls().isEmpty()) {
+                // Premier lancer de la frame
+                if (pins > 10) {
+                    throw new IllegalArgumentException("Le nombre de quilles ne peut pas dépasser 10");
+                }
+            } else if (currentFrame.getRolls().size() == 1) {
+                // Deuxième lancer de la frame
+                int firstRoll = currentFrame.getRolls().get(0);
+                if (firstRoll + pins > 10) {
+                    throw new IllegalArgumentException("Le total des quilles ne peut pas dépasser 10 dans une frame");
+                }
             }
         }
         
-        // Gestion des strikes et spares
-        if (pins == 10 && !currentFrame.isLastFrame() && currentFrame.getRolls().isEmpty()) {
-            // Strike
-            currentPlayer.roll(10);
-            if (!currentFrame.isLastFrame()) {
-                currentPlayer.roll(-2); // Marqueur pour strike (sera ignoré dans le calcul)
-            }
-        } else if (!currentFrame.getRolls().isEmpty() && 
-                  currentFrame.getRolls().get(0) + pins == 10 && 
-                  !currentFrame.isLastFrame()) {
-            // Spare
-            currentPlayer.roll(pins);
-            currentPlayer.roll(-1); // Marqueur pour spare
-        } else {
-            // Lancer normal
-            currentPlayer.roll(pins);
-        }
+        // Ajouter le lancer actuel
+        currentPlayer.roll(pins);
         
         updateScores();
 
@@ -95,65 +88,22 @@ public class BowlingGame {
 
     private void updateScores() {
         for (Player player : players) {
-            int score = 0;
             List<Frame> frames = player.getFrames();
             
+            // Calculer le score de chaque frame
             for (int i = 0; i < frames.size(); i++) {
                 Frame frame = frames.get(i);
                 int frameScore = 0;
-                List<Integer> rolls = frame.getRolls();
                 
-                // Calcul du score de base de la frame (sans les bonus)
-                for (int roll : rolls) {
-                    if (roll > 0) {  // Ignorer les marqueurs spéciaux (-1, -2)
+                // Somme des quilles tombées dans cette frame
+                for (int roll : frame.getRolls()) {
+                    if (roll > 0) {  // Ignorer les marqueurs spéciaux
                         frameScore += roll;
                     }
                 }
                 
-                // Gestion des bonus pour les strikes et spares
-                if (i < 9) {  // Pas de bonus pour la 10ème frame
-                    if (rolls.size() > 0 && rolls.get(0) == 10) {  // Strike
-                        // Chercher les 2 prochains lancers valides
-                        int bonus = 0;
-                        int count = 0;
-                        
-                        // Parcourir les frames suivantes pour trouver les 2 prochains lancers
-                        for (int j = i + 1; j < frames.size() && count < 2; j++) {
-                            for (int roll : frames.get(j).getRolls()) {
-                                if (roll > 0) {  // Ignorer les marqueurs spéciaux
-                                    bonus += roll;
-                                    count++;
-                                    if (count == 2) break;
-                                }
-                            }
-                        }
-                        
-                        frameScore += bonus;
-                    } 
-                    // Vérifier si c'est un spare (somme des 2 premiers lancers = 10, et pas un strike)
-                    else if (rolls.size() >= 2 && rolls.get(0) + rolls.get(1) == 10 && rolls.get(0) != 10) {
-                        // Chercher le prochain lancer valide
-                        if (i < 8) {  // Pour les frames 1 à 8
-                            for (int j = i + 1; j < frames.size(); j++) {
-                                for (int roll : frames.get(j).getRolls()) {
-                                    if (roll > 0) {  // Premier lancer valide trouvé
-                                        frameScore += roll;
-                                        j = frames.size();  // Sortir de la boucle
-                                        break;
-                                    }
-                                }
-                            }
-                        } else if (i == 8) {  // Pour la 9ème frame
-                            Frame tenthFrame = frames.get(9);
-                            if (!tenthFrame.getRolls().isEmpty()) {
-                                frameScore += tenthFrame.getRolls().get(0);
-                            }
-                        }
-                    }
-                }
-                
-                score += frameScore;
-                frame.setScore(score);
+                // Mettre à jour le score de la frame
+                frame.setScore(frameScore);
             }
         }
     }
@@ -197,48 +147,36 @@ public class BowlingGame {
             }
             Frame current = frames.get(currentFrame);
             
-            // Pour les frames 0-8 (les 9 premières frames)
-            if (currentFrame < 9) {
-                // Si strike, la frame est complète
-                if (current.getRolls().contains(10)) {
-                    return true;
-                }
-                // Si deux lancers, la frame est complète
-                return current.getRolls().size() >= 2;
-            } 
-            // Pour la dernière frame (index 9)
-            else {
-                // Si moins de 2 lancers, la frame n'est pas complète
-                if (current.getRolls().size() < 2) {
-                    return false;
-                }
-                // Si les deux premiers lancers font moins de 10, pas de troisième lancer
-                int firstTwoRolls = current.getRolls().get(0) + current.getRolls().get(1);
-                if (firstTwoRolls < 10) {
-                    return true;
-                }
-                // Sinon, besoin d'un troisième lancer
-                return current.getRolls().size() >= 3;
+            // Pour toutes les frames, on a besoin de 2 lancers
+            // sauf si c'est un strike (10 au premier lancer)
+            if (current.getRolls().isEmpty()) {
+                return false;
             }
+            
+            // Si c'est un strike (10 au premier lancer)
+            if (current.getRolls().get(0) == 10) {
+                return true;
+            }
+            
+            // Sinon, on a besoin de 2 lancers
+            return current.getRolls().size() >= 2;
         }
 
         public boolean isGameComplete() {
-            // Le jeu est terminé si on a atteint la dernière frame et qu'elle est complète
+            // Le jeu est terminé si on a atteint la 10ème frame et qu'elle est complète
             if (currentFrame >= 10) {
                 return true;
             }
             
-            // Vérifier si la dernière frame est complète
+            // Si on est sur la 10ème frame, on vérifie si elle est complète
             if (currentFrame == 9) {
                 Frame lastFrame = frames.get(9);
-                // Dernière frame complète si 2 lancers normaux ou 3 lancers si strike ou spare
-                if (lastFrame.getRolls().size() >= 3) {
+                // Si c'est un strike, on a besoin d'un seul lancer
+                if (!lastFrame.getRolls().isEmpty() && lastFrame.getRolls().get(0) == 10) {
                     return true;
-                } else if (lastFrame.getRolls().size() == 2) {
-                    // Si pas de strike ou spare dans la dernière frame, 2 lancers suffisent
-                    return lastFrame.getRolls().get(0) + lastFrame.getRolls().get(1) < 10;
                 }
-                return false;
+                // Sinon, on a besoin de 2 lancers
+                return lastFrame.getRolls().size() >= 2;
             }
             
             return false;
@@ -253,7 +191,16 @@ public class BowlingGame {
         }
 
         public int getTotalScore() {
-            return frames.stream().mapToInt(Frame::getScore).sum();
+            if (frames.isEmpty()) {
+                return 0;
+            }
+            
+            // Calculer la somme des scores de toutes les frames
+            int total = 0;
+            for (Frame frame : frames) {
+                total += frame.getScore();
+            }
+            return total;
         }
     }
 

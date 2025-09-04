@@ -170,7 +170,21 @@
         </header>
 
         <main>
-            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+            <!-- Messages d'erreur -->
+            <div th:if="${error}" class="alert alert-error" style="background-color: #ffebee; color: #c62828; padding: 10px; margin: 10px 0; border-radius: 4px; border: 1px solid #ef9a9a;">
+                <div style="display: flex; align-items: center;">
+                    <span style="margin-right: 10px;">❌</span>
+                    <span th:text="${error}"></span>
+                </div>
+            </div>
+            
+            <!-- Messages de succès -->
+            <div th:if="${success}" class="alert alert-success" style="background-color: #e8f5e9; color: #2e7d32; padding: 10px; margin: 10px 0; border-radius: 4px; border: 1px solid #a5d6a7;">
+                <div style="display: flex; align-items: center;">
+                    <span style="margin-right: 10px;">✅</span>
+                    <span>Lancer enregistré avec succès !</span>
+                </div>
+            </div>
             
             <div class="player-turn">
                 <h2>Jeu de Bowling</h2>
@@ -229,7 +243,9 @@
             </div>
             
             <div class="text-center mt-4">
-                <a href="/reset" class="btn btn-warning">Nouvelle partie</a>
+                <form method="post" th:action="@{/reset}" style="display: inline-block;">
+                    <button type="submit" class="btn btn-warning">Nouvelle partie</button>
+                </form>
             </div>
         </main>
     </div>

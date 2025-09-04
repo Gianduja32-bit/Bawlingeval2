@@ -40,10 +40,14 @@ public class BowlingController {
             // Effectuer le lancer
             game.roll(pins);
             System.out.println("Lancer effectué avec succès");
+            model.addAttribute("success", true);
             
-        } catch (Exception e) {
-            System.err.println("Erreur lors du lancer: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.err.println("Erreur de validation: " + e.getMessage());
             model.addAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Erreur inattendue: " + e.getMessage());
+            model.addAttribute("error", "Une erreur inattendue est survenue: " + e.getMessage());
         }
         
         // Mettre à jour le modèle et réafficher la page
