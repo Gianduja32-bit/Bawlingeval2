@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Default Title</title>
+    <link rel="stylesheet" href="/pico.green.min.css">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+    <!-- Common Header Fragment -->
+    <div th:fragment="header(pageTitle)">
+        <nav>
+            <ul>
+                <li><strong th:text="${pageTitle}">Page Title</strong></li>
+                <li><a th:href="@{/}">Dashboard</a></li>
+            </ul>
+        </nav>
+    </div>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de Bowling</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@1.*/css/pico.min.css">
+    <style>
+        :root {
+            --spacing: 1rem;
+        }
+        
+        body {
+            padding: var(--spacing);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            padding: 0;
+        }
+        
+        header {
+            margin-bottom: calc(var(--spacing) * 2);
+            text-align: center;
+        }
+        
+        .scoreboard-container {
+            overflow-x: auto;
+            margin-bottom: var(--spacing);
+        }
+        
+        .scoreboard {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            background: var(--card-background-color);
+            box-shadow: var(--card-box-shadow);
+            border-radius: var(--border-radius);
+        }
+        
+        .scoreboard th, 
+        .scoreboard td {
+            padding: 0.5rem;
+            text-align: center;
+            border: 1px solid var(--table-border-color);
+        }
+        
+        .scoreboard th {
+            background: var(--card-sectionning-background-color);
+            font-weight: bold;
+        }
+        
+        .frame {
+            min-width: 4rem;
+            position: relative;
+        }
+        
+        .rolls {
+            display: flex;
+            min-height: 2.5rem;
+            border-bottom: 1px solid var(--card-border-color);
+        }
+        
+        .roll {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.2rem;
+            border-right: 1px solid var(--card-border-color);
+        }
+        
+        .roll:last-child {
+            border-right: none;
+        }
+        
+        .score {
+            padding: 0.5rem;
+            font-weight: bold;
+            min-height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: 1px solid #ddd;
+            padding-top: 2px;
+        }
+        
+        .first-roll {
+            border-right: 1px solid #ddd;
+        }
+        
+        .roll {
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .frame {
+            position: relative;
+            min-width: 60px;
+            height: 60px;
+            padding: 2px;
+        }
+        .controls {
+            margin: 2rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        .pin-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .pin-button {
+            width: 50px;
+            height: 50px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 50%;
+            border: 2px solid #4CAF50;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .pin-button:hover {
+            background: #4CAF50;
+            color: white;
+            transform: scale(1.1);
+        }
+        .strike-button {
+            background-color: #ffeb3b;
+            border-color: #fbc02d;
+        }
+        .current-player-info {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 1.1em;
+        }
+        .game-over {
+            text-align: center;
+            margin: 2rem 0;
+            padding: 1rem;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+        }
+        .player-turn {
+            text-align: center;
+            margin: 1rem 0;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="text-center mb-4">
+            <h1>Jeu de Bowling</h1>
+        </header>
+
+        <main>
+            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+            
+            <div class="player-turn">
+                <h2>Jeu de Bowling</h2>
+                <p>Cliquez sur le nombre de quilles tombées à chaque lancer</p>
+            </div>
+            
+            <div th:if="${gameOver}" class="game-over">
+                <h3>Partie terminée !</h3>
+                <p>Score final: <span th:text="${not #lists.isEmpty(players) ? players[0].getTotalScore() : 0}"></span> points</p>
+            </div>
+
+            <div class="scoreboard-container" th:if="${not #lists.isEmpty(players)}">
+                <table class="table table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Joueur</th>
+                            <th th:each="i : ${#numbers.sequence(1, 10)}" class="text-center">
+                                Frame <span th:text="${i}"></span>
+                            </th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="player, playerStat : ${players}" 
+                            th:class="${playerStat.index == currentPlayerIndex} ? 'table-active'">
+                            <td th:text="${player.name}"></td>
+                            <td th:each="frame, frameStat : ${player.frames}" class="frame">
+                                <div class="rolls">
+                                    <div class="roll" th:each="roll, rollStat : ${frame.rolls}" th:class="${rollStat.index == 0 ? 'first-roll' : ''}">
+                                        <span th:text="${roll == 10 ? 'X' : (roll == -1 ? '/' : (roll == 0 ? '-' : roll))}"></span>
+                                    </div>
+                                </div>
+                                <div class="score" th:if="${frame.score != null}" th:text="${frame.score}"></div>
+                            </td>
+                            <td class="table-primary fw-bold" th:text="${player.getTotalScore()}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div th:unless="${gameOver}" class="text-center mt-4">
+                <div class="btn-group" role="group" id="bowling-controls">
+                    <form th:each="i : ${#numbers.sequence(0, 10)}" method="post" th:action="@{/roll}" class="bowling-form" style="display: inline-block;">
+                        <input type="hidden" name="pins" th:value="${i}" />
+                        <button type="submit" class="btn btn-outline-primary m-1" style="min-width: 50px;" th:data-pins="${i}">
+                            <span th:if="${i == 10}">X</span>
+                            <span th:if="${i < 10}" th:text="${i}"></span>
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="mt-3" th:if="${not #lists.isEmpty(players)}">
+                    <p>Tour de <strong th:text="${players[currentPlayerIndex].name}"></strong></p>
+                    <p>Frame: <span th:text="${players[currentPlayerIndex].currentFrame + 1}"></span>/10</p>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="/reset" class="btn btn-warning">Nouvelle partie</a>
+            </div>
+        </main>
+    </div>
+    
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Application de bowling initialisée');
+            
+            // Désactiver le bouton après le clic pour éviter les doubles soumissions
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function() {
+                    const buttons = this.querySelectorAll('button');
+                    buttons.forEach(btn => btn.disabled = true);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
